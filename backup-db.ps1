@@ -109,7 +109,7 @@ function Test-ValidServerInstance {
     # Server name: alphanumeric, underscore, hyphen, period (for FQDNs)
     # Optional instance name after a single backslash
     # Examples: localhost, SERVER1, server.domain.com, SERVER\INSTANCE
-    if ($Server -match '^[a-zA-Z0-9_.-]+(?:\\[a-zA-Z0-9_-]+)?$') {
+    if ($Server -match '^[a-zA-Z0-9_\.-]+(?:\\[a-zA-Z0-9_-]+)?$') {
         return $true
     }
     

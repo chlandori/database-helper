@@ -79,6 +79,18 @@ function Ensure-BackupDirectory {
 function Test-ValidDatabaseName {
     param([string]$Name)
     
+    # Check if name is empty or only whitespace
+    if ([string]::IsNullOrWhiteSpace($Name)) {
+        Write-Error "Database name cannot be empty or contain only whitespace."
+        return $false
+    }
+    
+    # Check length (SQL Server limit is 128 characters)
+    if ($Name.Length -gt 128) {
+        Write-Error "Database name '$Name' exceeds maximum length of 128 characters."
+        return $false
+    }
+    
     # Database names should not contain brackets, quotes, or other SQL special characters
     # Allow only alphanumeric, underscore, hyphen, and space
     # Spaces are supported because we use bracket notation [$Database] in SQL queries
@@ -138,7 +150,14 @@ function Backup-Database {
     )
     
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $backupFileName = "${Database}_${Type}_${timestamp}.bak"
+    
+    # Use appropriate file extension based on backup type
+    $fileExtension = switch ($Type) {
+        "LOG"  { "trn" }
+        default { "bak" }
+    }
+    
+    $backupFileName = "${Database}_${Type}_${timestamp}.${fileExtension}"
     $backupFilePath = Join-Path -Path $Path -ChildPath $backupFileName
     
     # Escape single quotes in file path for SQL query
@@ -154,13 +173,24 @@ function Backup-Database {
         "LOG"          { "LOG" }
     }
     
-    $compressionClause = if ($UseCompression) { " WITH COMPRESSION" } else { " WITH NO_COMPRESSION" }
-    $differentialClause = if ($Type -eq "DIFFERENTIAL") { ", DIFFERENTIAL" } else { "" }
+    # Build the WITH clause
+    $withClauses = @()
+    if ($UseCompression) {
+        $withClauses += "COMPRESSION"
+    } else {
+        $withClauses += "NO_COMPRESSION"
+    }
+    
+    if ($Type -eq "DIFFERENTIAL") {
+        $withClauses += "DIFFERENTIAL"
+    }
+    
+    $withClause = "WITH " + ($withClauses -join ", ")
     
     $backupQuery = @"
 BACKUP $backupTypeClause [$Database]
 TO DISK = N'$escapedBackupFilePath'
-$compressionClause$differentialClause
+$withClause
 "@
     
     try {

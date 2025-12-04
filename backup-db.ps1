@@ -1,4 +1,3 @@
-
 <#
 .SYNOPSIS
     Backs up one or more SQL Server databases to a parameterized location.
@@ -94,7 +93,7 @@ function Test-ValidDatabaseName {
     # Database names should not contain brackets, quotes, or other SQL special characters
     # Allow only alphanumeric, underscore, hyphen, and space
     # Spaces are supported because we use bracket notation [$Database] in SQL queries
-    if ($Name -match '^[a-zA-Z0-9_\-\s]+$') {
+    if ($Name -match '^[a-zA-Z0-9_\s-]+$') {
         return $true
     }
     
@@ -110,7 +109,7 @@ function Test-ValidServerInstance {
     # Server name: alphanumeric, underscore, hyphen, period (for FQDNs)
     # Optional instance name after a single backslash
     # Examples: localhost, SERVER1, server.domain.com, SERVER\INSTANCE
-    if ($Server -match '^[a-zA-Z0-9_\-\.]+(?:\\[a-zA-Z0-9_\-]+)?$') {
+    if ($Server -match '^[a-zA-Z0-9_.-]+(?:\\[a-zA-Z0-9_-]+)?$') {
         return $true
     }
     

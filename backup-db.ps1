@@ -81,11 +81,26 @@ function Test-ValidDatabaseName {
     
     # Database names should not contain brackets, quotes, or other SQL special characters
     # Allow only alphanumeric, underscore, hyphen, and space
+    # Spaces are supported because we use bracket notation [$Database] in SQL queries
     if ($Name -match '^[a-zA-Z0-9_\-\s]+$') {
         return $true
     }
     
     Write-Error "Invalid database name: '$Name'. Database names should only contain alphanumeric characters, underscores, hyphens, or spaces."
+    return $false
+}
+
+# Function to validate server instance name
+function Test-ValidServerInstance {
+    param([string]$Server)
+    
+    # Server instance names should follow pattern: servername or servername\instancename
+    # Allow alphanumeric, underscore, hyphen, period (for FQDNs), and backslash (for named instances)
+    if ($Server -match '^[a-zA-Z0-9_\-\.\\]+$') {
+        return $true
+    }
+    
+    Write-Error "Invalid server instance name: '$Server'. Server names should only contain alphanumeric characters, underscores, hyphens, periods, or backslashes."
     return $false
 }
 
@@ -124,6 +139,9 @@ function Backup-Database {
     $backupFileName = "${Database}_${Type}_${timestamp}.bak"
     $backupFilePath = Join-Path -Path $Path -ChildPath $backupFileName
     
+    # Escape single quotes in file path for SQL query
+    $escapedBackupFilePath = $backupFilePath -replace "'", "''"
+    
     Write-Host "`nBacking up database: $Database"
     Write-Host "  Type: $Type"
     Write-Host "  Destination: $backupFilePath"
@@ -139,7 +157,7 @@ function Backup-Database {
     
     $backupQuery = @"
 BACKUP $backupTypeClause [$Database]
-TO DISK = N'$backupFilePath'
+TO DISK = N'$escapedBackupFilePath'
 $compressionClause$differentialClause
 "@
     
@@ -170,6 +188,11 @@ Write-Host "Server Instance: $ServerInstance"
 Write-Host "Backup Type: $BackupType"
 Write-Host "Compression: $Compress"
 Write-Host ""
+
+# Validate server instance name
+if (-not (Test-ValidServerInstance -Server $ServerInstance)) {
+    exit 1
+}
 
 # Ensure backup directory exists
 Ensure-BackupDirectory -Path $BackupPath

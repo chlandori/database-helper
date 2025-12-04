@@ -75,6 +75,20 @@ function Ensure-BackupDirectory {
     }
 }
 
+# Function to validate database name
+function Test-ValidDatabaseName {
+    param([string]$Name)
+    
+    # Database names should not contain brackets, quotes, or other SQL special characters
+    # Allow only alphanumeric, underscore, hyphen, and space
+    if ($Name -match '^[a-zA-Z0-9_\-\s]+$') {
+        return $true
+    }
+    
+    Write-Error "Invalid database name: '$Name'. Database names should only contain alphanumeric characters, underscores, hyphens, or spaces."
+    return $false
+}
+
 # Function to get all user databases
 function Get-UserDatabases {
     param([string]$Server)
@@ -84,7 +98,6 @@ SELECT name
 FROM sys.databases 
 WHERE database_id > 4 
   AND state_desc = 'ONLINE'
-  AND name NOT IN ('ReportServer', 'ReportServerTempDB')
 ORDER BY name
 "@
     
@@ -108,7 +121,7 @@ function Backup-Database {
     )
     
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $backupFileName = "$Database`_$Type`_$timestamp.bak"
+    $backupFileName = "${Database}_${Type}_${timestamp}.bak"
     $backupFilePath = Join-Path -Path $Path -ChildPath $backupFileName
     
     Write-Host "`nBacking up database: $Database"
@@ -132,6 +145,7 @@ $compressionClause$differentialClause
     
     try {
         $startTime = Get-Date
+        # QueryTimeout 0 allows for unlimited time, necessary for large database backups
         Invoke-Sqlcmd -ServerInstance $Server -Query $backupQuery -QueryTimeout 0 -ErrorAction Stop
         $endTime = Get-Date
         $duration = ($endTime - $startTime).TotalSeconds
@@ -176,6 +190,13 @@ if ($DatabaseName.Count -eq 1 -and $DatabaseName[0] -eq "ALL") {
 } else {
     $databasesToBackup = $DatabaseName
     Write-Host "Databases to backup: $($databasesToBackup -join ', ')"
+    
+    # Validate database names to prevent SQL injection
+    foreach ($db in $databasesToBackup) {
+        if (-not (Test-ValidDatabaseName -Name $db)) {
+            exit 1
+        }
+    }
 }
 
 # Perform backups

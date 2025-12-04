@@ -95,12 +95,14 @@ function Test-ValidServerInstance {
     param([string]$Server)
     
     # Server instance names should follow pattern: servername or servername\instancename
-    # Allow alphanumeric, underscore, hyphen, period (for FQDNs), and backslash (for named instances)
-    if ($Server -match '^[a-zA-Z0-9_\-\.\\]+$') {
+    # Server name: alphanumeric, underscore, hyphen, period (for FQDNs)
+    # Optional instance name after a single backslash
+    # Examples: localhost, SERVER1, server.domain.com, SERVER\INSTANCE
+    if ($Server -match '^[a-zA-Z0-9_\-\.]+(?:\\[a-zA-Z0-9_\-]+)?$') {
         return $true
     }
     
-    Write-Error "Invalid server instance name: '$Server'. Server names should only contain alphanumeric characters, underscores, hyphens, periods, or backslashes."
+    Write-Error "Invalid server instance name: '$Server'. Expected format: servername or servername\instancename"
     return $false
 }
 
@@ -152,7 +154,7 @@ function Backup-Database {
         "LOG"          { "LOG" }
     }
     
-    $compressionClause = if ($UseCompression) { "WITH COMPRESSION" } else { "WITH NO_COMPRESSION" }
+    $compressionClause = if ($UseCompression) { " WITH COMPRESSION" } else { " WITH NO_COMPRESSION" }
     $differentialClause = if ($Type -eq "DIFFERENTIAL") { ", DIFFERENTIAL" } else { "" }
     
     $backupQuery = @"

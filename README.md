@@ -29,3 +29,16 @@ Usage:
 ``` powershell
 .\install-sql.ps1 -IsoFilePath C:\pathto\sqlserver.iso
 ```
+
+Note: If you'd like to change the disk location update the configuration ini file at the end
+
+```
+; --- Custom data disk locations ---
+INSTALLSQLDATADIR="D:\yourdatapath"
+SQLUSERDBDIR="D:\yourdatapath\Data"
+SQLUSERDBLOGDIR="D:\yourdatapath\Log"
+SQLTEMPDBDIR="D:\yourdatapath\TempDB"
+SQLTEMPDBLOGDIR="D:\yourdatapath\TempDB"
+SQLBACKUPDIR="D:\yourdatapath\Backup"
+
+```
